@@ -56,7 +56,13 @@ public class Lexer {
       case '#' : if (readch('t')) return Word.True;
              else if (readch('f')) return Word.False;
              else return new Token('#');
-      case '/' : if (readch('/')) for (;!readch('\n');); ;
+      case '/':
+        if (readch('/')) {
+          while(!readch('\n') && peek != '\r');
+          while(readch('\n') || peek == '\r');
+          line = line + 1;
+        } else return new Token('/');
+        break;
     }
 
     if (peek == '"') {
