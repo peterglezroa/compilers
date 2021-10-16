@@ -4,6 +4,7 @@
 #include <string>
 #include <iterator>
 #include <algorithm>
+#include <map>
 #include <list>
 #include <regex>
 
@@ -11,11 +12,11 @@
 
 class LexicalAnalyzer {
     private:
-        std::list<std::string> prods;
-        std::list<std::string> terms;
+        std::list<std::string> vars; // Syntathic variables
+        std::list<std::string> terms; // Terminals
 
-        bool has_prod(std::string str) {
-            return (std::find(prods.begin(), prods.end(), str)!=prods.end());
+        bool has_var(std::string str) {
+            return (std::find(vars.begin(), vars.end(), str)!=vars.end());
         }
 
         bool has_term(std::string str) {
@@ -25,40 +26,40 @@ class LexicalAnalyzer {
     public:
         LexicalAnalyzer() {}
 
-        void clear() { prods.clear(); terms.clear(); }
+        void clear() { vars.clear(); terms.clear(); }
 
-        bool parse(std::string rule) {
-            std::regex ruleRegex("([A-Za-z_-]+) -> (.*)");
-            /* Parses a given rule. If the sintax is valid it returns true, if
+        bool parse(std::string production) {
+            /* Parses a given production. If the sintax is valid it returns true, if
              * not it returns false */
-            std::string production, terminal, *strptr;
+            std::regex productionRegex("([A-Za-z_-]+) -> (.*)");
+            std::string variable, terminal, *strptr;
             char *cptr;
             size_t pos;
 
-            if (!std::regex_match(rule, ruleRegex))
+            if (!std::regex_match(production, productionRegex))
                 return false;
 
-            // Find the divider between production and terminals
-            pos = rule.find(" -> ");
+            // Find the divider between variable and terminals
+            pos = production.find(" -> ");
 
-            // Get production and add it to list if not found
-            production = rule.substr(0, pos);
-            if (!has_prod(production))
-                prods.push_back(production);
+            // Get variable and add it to list if not found
+            variable = production.substr(0, pos);
+            if (!has_var(variable))
+                vars.push_back(variable);
 
-            // Remove production from terminal list if it was inside
-            terms.remove(production);
+            // Remove variable from terminal list if it was inside
+            terms.remove(variable);
 
-            rule.erase(0, pos+4); // Erase production to only leave rule
+            production.erase(0, pos+4); // Erase no terminal to only leave rule
 
-            // Iterate through words in the rule
-            while ((pos = rule.find(' ')) != std::string::npos) {
-                terminal = rule.substr(0, pos);
-                if (!has_prod(terminal) && !has_term(terminal))
+            // Iterate through words in the production
+            while ((pos = production.find(' ')) != std::string::npos) {
+                terminal = production.substr(0, pos);
+                if (!has_var(terminal) && !has_term(terminal))
                     terms.push_back(terminal);
-                rule.erase(0, pos+1);
+                production.erase(0, pos+1);
             }
-            terms.push_back(rule); // last word
+            terms.push_back(production); // last word
 
             terms.unique();
             terms.remove("''");
@@ -67,7 +68,7 @@ class LexicalAnalyzer {
 
         bool validString(std::string) {return false;}
 
-        const std::list<std::string> getProductions() const { return prods;}
+        const std::list<std::string> getVariables() const { return vars;}
 
         const std::list<std::string> getTerminals() const { return terms; }
 };

@@ -14,20 +14,20 @@ bool has_same_strings(const std::list<std::string> list, const std::vector<std::
     return true;
 }
 
-void test(const LexicalAnalyzer analyzer, std::vector<std::string> prods, std::vector<std::string> terms) {
+void test(const LexicalAnalyzer analyzer, std::vector<std::string> vars, std::vector<std::string> terms) {
     fprintf(stdout, "( ");
-    for (std::string str : analyzer.getProductions())
+    for (std::string str : analyzer.getVariables())
         fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
     fprintf(stdout, ") and ( ");
-    for (std::string str : prods)
+    for (std::string str : vars)
         fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
     fprintf(stdout, "): ");
-    (has_same_strings(analyzer.getProductions(), prods))?
+    (has_same_strings(analyzer.getVariables(), vars))?
         fprintf(stdout, "\033[1;32mCORRECT\033[0m\n"):
         fprintf(stdout, "\033[1;31mINCORRECT\033[0m\n");
 
     fprintf(stdout, "( ");
-    for (std::string str : analyzer.getTerminals())
+    for (std::string str : analyzer.getVariables())
         fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
     fprintf(stdout, ") and ( ");
     for (std::string str : terms)
@@ -108,5 +108,8 @@ int main(int argc, char *argv[]) {
     analyzer.parse("APrime -> a d APrime");
     analyzer.parse("APrime -> ''");
     test(analyzer, test5p, test5t);
+
+
+    // Test first and follows
     return 0;
 }

@@ -22,19 +22,19 @@ int main(int argc, char *argv[]) {
         if (!analyzer.parse(std::string(rule)))
             fprintf(stderr, "%s is not a valid rule!", rule.c_str());
     }
-    fprintf(stdout, "\nThe productions are: ");
-    std::string lastprod = analyzer.getProductions().back();
-    for (std::string const prod : analyzer.getProductions())
-        (prod != lastprod)?
-            fprintf(stdout, "%s, ", prod.c_str())
+    fprintf(stdout, "\nThe no terminals are: ");
+    std::string last_var = analyzer.getVariables().back();
+    for (std::string const var : analyzer.getVariables())
+        (var != last_var)?
+            fprintf(stdout, "%s, ", var.c_str())
         :
-            fprintf(stdout, "%s\n", prod.c_str())
+            fprintf(stdout, "%s\n", var.c_str())
         ;
 
     fprintf(stdout, "The terminals are: ");
-    std::string lastterm = analyzer.getTerminals().back();
+    std::string last_term = analyzer.getTerminals().back();
     for (std::string const term : analyzer.getTerminals())
-        (term != lastterm)?
+        (term != last_term)?
             fprintf(stdout, "%s, ", term.c_str())
         :
             fprintf(stdout, "%s\n", term.c_str())
