@@ -1,45 +1,47 @@
 #include <iterator>
 #include <list>
-#include <queue>
 #include <string>
 #include "lexical_analyzer.h"
 
-void compare_lists (
-  const std::list<std::string> list1,
-  const std::list<std::string> list2
-){
-  std::queue<std::string> missing; // List of words missing
+void print_correct() { fprintf(stdout, "\033[1;32mCORRECT\033[0m\n"); }
 
-  // Find items of list 1 in list 2
-  for (std::string str : list1)
-    if (std::find(list2.begin(), list2.end(), str) == list2.end())
-      missing.push(str);
+void print_incorrect() { fprintf(stdout, "\033[1;31mINCORRECT\033[0m\n"); }
 
-  // Find items of list 2 in list 1
-  for (std::string str : list2)
-    if (std::find(list1.begin(), list1.end(), str) == list1.end())
-      missing.push(str);
+void compare_lists(std::list<std::string> list1, std::list<std::string> list2) {
+  std::list<std::string> intersection, subs1, subs2;
+  list1.sort();
+  list2.sort();
+  std::set_intersection (
+    list1.begin(), list1.end(), list2.begin(), list2.end(),
+    std::back_inserter(intersection)
+  );
 
-  if (missing.size() > 0) {
-    fprintf(stdout, "\033[1;31mINCORRECT\033[0m\n\t");
+  if (intersection.size() != list1.size() || intersection.size() != list2.size()) {
+    print_incorrect();
+    fprintf(stdout, "\t");
 
-    fprintf(stdout, "( ");
-    std::string top = missing.front(); missing.pop();
-    for (const std::string str : list1)
-      if (str.compare(top) == 0) {
-        fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
-        if (!missing.empty()) { top = missing.front(); missing.pop(); }
-      } else fprintf(stdout, "%s ", str.c_str());
-    fprintf(stdout, ")");
+    std::set_difference (
+      list1.begin(), list1.end(), intersection.begin(), intersection.end(),
+      std::back_inserter(subs1)
+    );
+    fprintf(stdout, "{ ");
+    for (const std::string str : intersection)
+      fprintf(stdout, "%s ", str.c_str());
+    for (const std::string str : subs1)
+      fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
+    fprintf(stdout, "}");
 
-    fprintf(stdout, "\t( ");
-    for (const std::string str : list2)
-      if (str.compare(top) == 0) {
-        fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
-        if (!missing.empty()) { top = missing.front(); missing.pop(); }
-      } else fprintf(stdout, "%s ", str.c_str());
-    fprintf(stdout, ")\n");
-  } else fprintf(stdout, "\033[1;32mCORRECT\033[0m\n");
+    std::set_difference (
+      list2.begin(), list2.end(), intersection.begin(), intersection.end(),
+      std::back_inserter(subs2)
+    );
+    fprintf(stdout, "\t{ ");
+    for (const std::string str : intersection)
+      fprintf(stdout, "%s ", str.c_str());
+    for (const std::string str : subs2)
+      fprintf(stdout, "\033[1;35m%s \033[0m", str.c_str());
+    fprintf(stdout, "}\n");
+  } else print_correct();
 }
 
 int main(int argc, char *argv[]) {
@@ -47,14 +49,15 @@ int main(int argc, char *argv[]) {
 
   fprintf(stdout, "===================== TEST 01 =====================\n");
   analyzer.parse({
-  "E -> T EPrime",
-  "EPrime -> + T EPrime",
-  "EPrime -> ''",
-  "T -> F TPrime",
-  "TPrime -> * F TPrime",
-  "TPrime -> ''",
-  "F -> ( E )",
-  "F -> id"});
+    "E -> T EPrime",
+    "EPrime -> + T EPrime",
+    "EPrime -> ''",
+    "T -> F TPrime",
+    "TPrime -> * F TPrime",
+    "TPrime -> ''",
+    "F -> ( E )",
+    "F -> id"
+  });
 
   // Terminals and not terminals
   fprintf(stdout, "Test synthatic variables: ");
@@ -85,18 +88,24 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getFollow("TPrime"), {"+", "$", ")"});
   fprintf(stdout, "Test FOLLOW(F): ");
   compare_lists(analyzer.getFollow("F"), {"*", "+", "$", ")"});
+
+  // LL? (Yes)
+  fprintf(stdout, "Test LL(1): ");
+  (analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 
   analyzer.clear();
 
   fprintf(stdout, "===================== TEST 02 =====================\n");
   analyzer.parse({
-  "E -> E + T",
-  "E -> T",
-  "T -> T * F",
-  "T -> F",
-  "F -> id",
-  "F -> ( E )"});
+    "E -> E + T",
+    "E -> T",
+    "T -> T * F",
+    "T -> F",
+    "F -> id",
+    "F -> ( E )"
+  });
+
   // Terminals and not terminals
   fprintf(stdout, "Test synthatic variables: ");
   compare_lists(analyzer.getVariables(), {"E", "T", "F"});
@@ -118,18 +127,24 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getFollow("T"), {"*", "$", "+", ")"});
   fprintf(stdout, "Test FOLLOW(F): ");
   compare_lists(analyzer.getFollow("F"), {"*", "$", "+", ")"});
+
+  // LL? (No)
+  fprintf(stdout, "Test LL(1): ");
+  (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 
   analyzer.clear();
 
   fprintf(stdout, "===================== TEST 03 =====================\n");
   analyzer.parse({
-  "A -> a A",
-  "A -> b A",
-  "A -> a B",
-  "B -> b C",
-  "C -> b D",
-  "D -> ''"});
+    "A -> a A",
+    "A -> b A",
+    "A -> a B",
+    "B -> b C",
+    "C -> b D",
+    "D -> ''"
+  });
+
   // Terminals and not Terminals
   fprintf(stdout, "Test synthatic variables: ");
   compare_lists(analyzer.getVariables(), {"A", "B", "C", "D"});
@@ -155,20 +170,26 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getFollow("C"), {"$"});
   fprintf(stdout, "Test FOLLOW(D): ");
   compare_lists(analyzer.getFollow("D"), {"$"});
+
+  // LL? (No)
+  fprintf(stdout, "Test LL(1): ");
+  (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 
   analyzer.clear();
 
   fprintf(stdout, "===================== TEST 04 =====================\n");
   analyzer.parse({
-  "bexpr -> bexpr or bterm",
-  "bexpr -> bterm",
-  "bterm -> bterm and bfactor",
-  "bterm -> bfactor",
-  "bfactor -> not bfactor",
-  "bfactor -> ( bexpr )",
-  "bfactor -> true",
-  "bfactor -> false"});
+    "bexpr -> bexpr or bterm",
+    "bexpr -> bterm",
+    "bterm -> bterm and bfactor",
+    "bterm -> bfactor",
+    "bfactor -> not bfactor",
+    "bfactor -> ( bexpr )",
+    "bfactor -> true",
+    "bfactor -> false"
+  });
+
   // No terminals and terminals
   fprintf(stdout, "Test synthatic variables: ");
   compare_lists(analyzer.getVariables(), {"bexpr", "bterm", "bfactor"});
@@ -190,19 +211,25 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getFollow("bterm"), {"$", "or", ")", "and"});
   fprintf(stdout, "Test FOLLOW(bfactor): ");
   compare_lists(analyzer.getFollow("bfactor"), {"$", "or", ")", "and"});
+
+  // LL? (No)
+  fprintf(stdout, "Test LL(1): ");
+  (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 
   analyzer.clear();
 
   fprintf(stdout, "===================== TEST 05 =====================\n");
   analyzer.parse({
-  "S -> A a",
-  "S -> b",
-  "A -> b d APrime",
-  "A -> APrime",
-  "APrime -> c APrime",
-  "APrime -> a d APrime",
-  "APrime -> ''"});
+    "S -> A a",
+    "S -> b",
+    "A -> b d APrime",
+    "A -> APrime",
+    "APrime -> c APrime",
+    "APrime -> a d APrime",
+    "APrime -> ''"
+  });
+
   // No Terminals and Terminals
   fprintf(stdout, "Test synthatic variables: ");
   compare_lists(analyzer.getVariables(), {"S", "A", "APrime"});
@@ -224,6 +251,10 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getFollow("A"), {"a"});
   fprintf(stdout, "Test FOLLOW(APrime): ");
   compare_lists(analyzer.getFollow("APrime"), {"a"});
+
+  // LL? (No)
+  fprintf(stdout, "Test LL(1): ");
+  (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 
   return 0;

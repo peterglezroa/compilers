@@ -86,6 +86,7 @@ class LexicalAnalyzer {
         throw "Not part of synthatic variables or terminals!";
       }
 
+      firsts.sort();
       firsts.unique(); // Clean List
       return firsts;
     }
@@ -100,6 +101,7 @@ class LexicalAnalyzer {
       }
 
       for (const Production prod : prods) {
+        // First rule
         if (first && prod.variable.compare(str) == 0)
           follows.push_back("$");
 
@@ -107,15 +109,18 @@ class LexicalAnalyzer {
           if (it->compare(str) == 0) {
             // See next terminal
             if (it != prod.elements.end() && std::next(it) != prod.elements.end()) {
+              // Second rule
               // FIRST of the following terminal
               std::list<std::string> fnext = this->first(*std::next(it));
               follows.insert(follows.end(), fnext.begin(), fnext.end());
 
+              // Third rule
               // If next can be EPSILON, then follow the variable
               if (str.compare(prod.variable) != 0 &&
                   std::find(fnext.begin(), fnext.end(), EPSILON) != fnext.end())
                 follows.splice(follows.end(), follow(prod.variable));
             } else if (str.compare(prod.variable) != 0)
+              // Third rule
               follows.splice(follows.end(), follow(prod.variable));
           }
         }
@@ -123,8 +128,19 @@ class LexicalAnalyzer {
       }
 
       follows.remove(EPSILON);
+      follows.sort();
       follows.unique();
       return follows;
+    }
+
+    bool drifts_epsilon(std::list<std::string> elements) {
+      for (const std::string elem : elements)
+        if (elem.compare(EPSILON) != 0) {
+          std::list<std::string> firsts = first(elem);
+          if (std::find(firsts.begin(), firsts.end(), EPSILON) == firsts.end())
+            return false;
+        }
+      return true;
     }
 
   public:
@@ -177,8 +193,9 @@ class LexicalAnalyzer {
       prod.elements.push_back(production);
 
       prods.push_back(prod);
-      terms.unique();
       terms.remove(EPSILON);
+      terms.sort();
+      terms.unique();
       return true;
     }
 
@@ -193,6 +210,62 @@ class LexicalAnalyzer {
       str.pop_back();
       return str;
     }
+
+    bool is_ll() {
+      for (std::string var : vars) {
+        std::list<Production> var_prods = productions(var);
+        if (var_prods.size() >= 2) {
+          for (
+            auto it1 = var_prods.begin();
+            it1 != var_prods.end() && std::next(it1) != var_prods.end();
+            it1++
+          ) {
+            for (auto it2 = std::next(it1); it2 != var_prods.end(); it2++) {
+              // First rule
+              // FIRST(prod1) intersection FIRST(prod2) must be empty.
+              std::list<std::string> first_prod1 = first(it1->elements.front());
+              std::list<std::string> first_prod2 = first(it2->elements.front());
+              std::list<std::string> intersection;
+              first_prod1.sort();
+              first_prod2.sort();
+              std::set_intersection(
+                first_prod1.begin(), first_prod1.end(),
+                first_prod2.begin(), first_prod2.end(),
+                std::back_inserter(intersection)
+              );
+
+              if (!intersection.empty())
+                return false;
+
+              // Second Rule
+              // Only one drifts to EPSILON
+              if (drifts_epsilon(it1->elements) && drifts_epsilon(it2->elements))
+                return false;
+
+              // Third Rule
+              // FIRST(prod1) intersection FOLLOW(var) = EPSILON &&
+              // FIRST(prod2) intersection FOLLOW(var) = EPSILON
+              std::list<std::string> follow_var = follow(var);
+              follow_var.sort();
+              std::set_intersection(
+                first_prod1.begin(), first_prod1.end(),
+                follow_var.begin(), follow_var.end(),
+                std::back_inserter(intersection)
+              );
+              std::set_intersection(
+                first_prod2.begin(), first_prod2.end(),
+                follow_var.begin(), follow_var.end(),
+                std::back_inserter(intersection)
+              );
+              if (!intersection.empty())
+                return false;
+            }
+          }
+        }
+      }
+      return true;
+    }
+
 
     const std::list<std::string> getVariables() const { return vars;}
 
