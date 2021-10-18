@@ -74,9 +74,11 @@ class LexicalAnalyzer {
 
             // Find if it has epsilon
             if (std::find(ff.begin(), ff.end(), EPSILON) != ff.end() &&
-                production.elements.size() > 1)
+                production.elements.size() > 1) {
+              ff.remove(EPSILON);
               // Also add the first of the following element
               ff.splice(ff.end(), first(*std::next(production.elements.begin())));
+            }
 
             firsts.splice(firsts.end(), ff);
           }

@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
 
   // Firsts
   fprintf(stdout, "Test FIRST(S): ");
-  compare_lists(analyzer.getFirst("S"), {"b", "c", "a", "''"});
+  compare_lists(analyzer.getFirst("S"), {"b", "c", "a"});
   fprintf(stdout, "Test FIRST(A): ");
   compare_lists(analyzer.getFirst("A"), {"b", "c", "a", "''"});
   fprintf(stdout, "Test FIRST(APrime): ");
