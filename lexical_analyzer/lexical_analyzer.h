@@ -10,7 +10,8 @@
 #include <regex>
 
 //#define RULEREGEX "([A-Za-z_-]+) ?-> ?(.*)"
-//
+#define EPSILON "''"
+
 class Production {
   public:
     std::string variable;
@@ -63,7 +64,7 @@ class LexicalAnalyzer {
       std::list<std::string> firsts;
 
       // First rule: first of a terminal
-      if (has_term(str) || str.compare("''") == 0) firsts.push_back(str);
+      if (has_term(str) || str.compare(EPSILON) == 0) firsts.push_back(str);
       else if (has_var(str)) {
         for (const Production production : prods) {
           if (str.compare(production.variable) == 0 &&
@@ -72,7 +73,7 @@ class LexicalAnalyzer {
             std::list<std::string> ff = first(production.elements.front());
 
             // Find if it has epsilon
-            if (std::find(ff.begin(), ff.end(), "''") != ff.end() &&
+            if (std::find(ff.begin(), ff.end(), EPSILON) != ff.end() &&
                 production.elements.size() > 1)
               // Also add the first of the following element
               ff.splice(ff.end(), first(*std::next(production.elements.begin())));
@@ -90,14 +91,46 @@ class LexicalAnalyzer {
     }
 
     std::list<std::string> follow(std::string str) {
-      std::list<std::string> firsts;
-      return firsts;
+      std::list<std::string> follows;
+      bool first = true;
+
+      if (!has_var(str) && !has_term(str)) {
+        fprintf(stderr, "Not part of synthatic variabels or terminals (%s)!\n", str.c_str());
+        throw "Not part of synthatic variables or terminals!";
+      }
+
+      for (const Production prod : prods) {
+        if (first && prod.variable.compare(str) == 0)
+          follows.push_back("$");
+
+        for (auto it = prod.elements.begin(); it != prod.elements.end(); it++) {
+          if (it->compare(str) == 0) {
+            // See next terminal
+            if (it != prod.elements.end() && std::next(it) != prod.elements.end()) {
+              // FIRST of the following terminal
+              std::list<std::string> fnext = this->first(*std::next(it));
+              follows.insert(follows.end(), fnext.begin(), fnext.end());
+
+              // If next can be EPSILON, then follow the variable
+              if (str.compare(prod.variable) != 0 &&
+                  std::find(fnext.begin(), fnext.end(), EPSILON) != fnext.end())
+                follows.splice(follows.end(), follow(prod.variable));
+            } else if (str.compare(prod.variable) != 0)
+              follows.splice(follows.end(), follow(prod.variable));
+          }
+        }
+        first = false;
+      }
+
+      follows.remove(EPSILON);
+      follows.unique();
+      return follows;
     }
 
   public:
     LexicalAnalyzer() {}
 
-    void clear() { vars.clear(); terms.clear(); }
+    void clear() { vars.clear(); terms.clear(); prods.clear(); }
 
     bool parse(std::list<std::string> productions) {
       bool all = true;
@@ -145,7 +178,7 @@ class LexicalAnalyzer {
 
       prods.push_back(prod);
       terms.unique();
-      terms.remove("''");
+      terms.remove(EPSILON);
       return true;
     }
 

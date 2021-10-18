@@ -113,11 +113,11 @@ int main(int argc, char *argv[]) {
 
   // Follows
   fprintf(stdout, "Test FOLLOW(E): ");
-  compare_lists(analyzer.getFollow("E"), {"$", "+"});
+  compare_lists(analyzer.getFollow("E"), {"$", "+", ")"});
   fprintf(stdout, "Test FOLLOW(T): ");
-  compare_lists(analyzer.getFollow("T"), {"*", "$", "+"});
+  compare_lists(analyzer.getFollow("T"), {"*", "$", "+", ")"});
   fprintf(stdout, "Test FOLLOW(F): ");
-  compare_lists(analyzer.getFollow("F"), {"*", "$", "+"});
+  compare_lists(analyzer.getFollow("F"), {"*", "$", "+", ")"});
   fprintf(stdout, "\n");
 
   analyzer.clear();
@@ -208,7 +208,6 @@ int main(int argc, char *argv[]) {
   compare_lists(analyzer.getVariables(), {"S", "A", "APrime"});
   fprintf(stdout, "Test terminals: ");
   compare_lists(analyzer.getTerminals(), {"a", "b", "c", "d"});
-  fprintf(stdout, "\n");
 
   // Firsts
   fprintf(stdout, "Test FIRST(S): ");
@@ -222,9 +221,9 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test FOLLOW(S): ");
   compare_lists(analyzer.getFollow("S"), {"$"});
   fprintf(stdout, "Test FOLLOW(A): ");
-  compare_lists(analyzer.getFollow("A"), {});
-  fprintf(stdout, "Test FOLLOW(bfactor): ");
-  compare_lists(analyzer.getFollow("APrime"), {});
+  compare_lists(analyzer.getFollow("A"), {"a"});
+  fprintf(stdout, "Test FOLLOW(APrime): ");
+  compare_lists(analyzer.getFollow("APrime"), {"a"});
   fprintf(stdout, "\n");
 
   return 0;
