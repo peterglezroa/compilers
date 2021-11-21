@@ -3,6 +3,8 @@
 #include <string>
 #include "lexical_analyzer.h"
 
+#define DEBUG 1
+
 void print_correct() { fprintf(stdout, "\033[1;32mCORRECT\033[0m\n"); }
 
 void print_incorrect() { fprintf(stdout, "\033[1;31mINCORRECT\033[0m\n"); }
@@ -305,6 +307,19 @@ int main(int argc, char *argv[]) {
   // LL? (Yes)
   fprintf(stdout, "Test LL(1): ");
   (analyzer.is_ll())? print_correct() : print_incorrect();
+
+  // Accept string
+  fprintf(stdout, "Test string '( ( a ) )': ");
+  (analyzer.validStr("( ( a ) )"))? print_correct() : print_incorrect();
+
+  fprintf(stdout, "Test string '( a ) )': ");
+  (!analyzer.validStr("( a ) )"))? print_correct() : print_incorrect();
+
+  fprintf(stdout, "Test string '( ( ( ( ( b ) ) ) ) )': ");
+  (analyzer.validStr("( ( ( ( ( b ) ) ) ) )"))? print_correct() : print_incorrect();
+
+  fprintf(stdout, "Test string '( ( ( ( ( a b ) ) ) ) )': ");
+  (!analyzer.validStr("( ( ( ( ( a b ) ) ) ) )"))? print_correct() : print_incorrect();
 
   /*
   // Table

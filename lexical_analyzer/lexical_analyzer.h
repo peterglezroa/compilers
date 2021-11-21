@@ -45,7 +45,7 @@ class Variable {
     std::list<std::string> first;
     int folVer; // Integer used for version control and optimize updates
     std::list<std::string> follow;
-    std::map<std::string, Production> table;
+    std::map<std::string, Production*> table;
 
     friend class LexicalAnalyzer;
 
@@ -80,13 +80,13 @@ class Variable {
     }
 
     /* Returns a list of the elements of the production that gets to the term */
-    std::list<std::string> term_prod(std::string term) const {
+    std::list<std::string> termProd(std::string term) const {
       auto it = table.find(term);
 
       if(it == table.end())
         throw std::runtime_error("Variable can not get to terminal!");
 
-      return it->second.getElements();
+      return it->second->getElements();
     }
 
     std::string toString() {
@@ -105,11 +105,11 @@ class Variable {
 
       str.append("}, MAP={");
       if(!table.empty()) {
-        std::map<std::string, Production>::iterator it;
+        std::map<std::string, Production*>::iterator it;
         for (it = table.begin(); it != table.end(); it++) {
           str.append(it->first);
           str.append(": ");
-          str.append(it->second.toString());
+          str.append(it->second->toString());
           str.append(", ");
         }
         str.pop_back();
@@ -132,6 +132,7 @@ class LexicalAnalyzer {
     std::list<Variable> vars; // Syntathic variables
     std::list<std::string> terms; // Terminals
     std::list<Production> prods; // All productions
+    std::list<std::string> cache;
 
     /* Returns a boolean that confirms if the received string is part of the
      * synthatic variables */
@@ -330,10 +331,11 @@ class LexicalAnalyzer {
     }
 
     /* Runs a calculation return the row of the LL table for an specific var. */
-    std::map<std::string, Production> calcTable(const std::string &variable) {
-      std::map<std::string, Production> map;
+    std::map<std::string, Production*> calcTable(const std::string &variable) {
+      std::map<std::string, Production*> map;
       std::string front;
       std::list<Production> varProds;
+      std::list<Production>::iterator prodIt;
       Variable *var = getVar(variable), *oVar;
 
       if (!isLL) throw std::runtime_error("Is not LL!");
@@ -341,17 +343,67 @@ class LexicalAnalyzer {
       else {
         varProds = productions(var->name);
         for(const std::string term : var->first) {
-          for (Production prod : varProds) {
-            front = prod.elements.front();
+          for (prodIt = varProds.begin(); prodIt != varProds.end(); prodIt++) {
+            front = prodIt->elements.front();
             if (term.compare(front) == 0 || // Same as Terminal
             (*var != front && (oVar=getVar(front)) && oVar->hasTerm(term)) ){
               // Other variable that has term in first
-              map.insert(std::pair<std::string, Production>(term, prod));
+              map.insert(std::pair<std::string, Production*>(term, &(*prodIt)));
             }
           }
         }
       }
       return map;
+    }
+
+    /* Test if the string is valid. */
+    bool testStr(std::string str, bool cacheDebug = false) {
+      std::string term, top, c = "";
+      std::stack<std::string> stack;
+      Variable *v;
+      Production* prod;
+      size_t pos;
+
+      str.append(" $");
+
+      if(cacheDebug) cache.clear();
+
+      if (!prods.empty()) {
+        stack.push("$");
+        stack.push(prods.front().variable);
+        while ((pos = str.find(' ')) != std::string::npos) {
+          c = "";
+          term = str.substr(0, pos);
+
+          if (stack.empty() || stack.top().compare("$") == 0) return false;
+          
+          top = stack.top();
+          // Same term
+          if (top == term) {
+            if(cacheDebug) c.append(top);
+            str.erase(0, pos+1);
+            stack.pop();
+          // No terminal that can get to term
+          } else if( (v=getVar(top)) && v->table.find(top) != v->table.end()) {
+            if(cacheDebug) c.append(v->table[top]->toString());
+            stack.pop();
+            for(std::string e : v->termProd(top)) stack.push(e);
+          // No terminal that can be epsilon
+          } else if(v->hasTerm(EPSILON)) stack.pop();
+          // Error
+          else return false;
+
+          if (cacheDebug) {
+            c.append("    |    ");
+            c.append(stack.top());
+            c.append("    |    ");
+            c.append(str);
+            cache.push_back(c);
+          }
+        }
+        if(str.compare("$") == 0 && stack.top().compare("$") == 0) return true;
+      }
+      return false;
     }
 
     /* Updates the Variables and if it is LL so we do not need to calculate 
@@ -371,7 +423,7 @@ class LexicalAnalyzer {
   public:
     LexicalAnalyzer() { isLL = false; ver = 1; }
 
-    void clear() { vars.clear(); terms.clear(); prods.clear(); }
+    void clear() { vars.clear(); terms.clear(); prods.clear(); cache.clear(); }
 
     /* Parses a given list of productions. If the sintax is valid it returns
      * true, else it returns false.
@@ -430,7 +482,9 @@ class LexicalAnalyzer {
       return true;
     }
 
-    bool validString(std::string) {return false;}
+    bool validStr(const std::string &str, bool debug=false) {
+      return testStr(str, debug);
+    }
 
     bool is_ll() { return isLL; }
 
@@ -442,6 +496,10 @@ class LexicalAnalyzer {
       }
       str.pop_back();
       return str;
+    }
+
+    void printCache() {
+      for(std::string str : cache) fprintf(stdout, "%s\n", str.c_str());
     }
 
     const std::list<std::string> getVariables() {
