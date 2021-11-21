@@ -132,7 +132,6 @@ class LexicalAnalyzer {
     std::list<Variable> vars; // Syntathic variables
     std::list<std::string> terms; // Terminals
     std::list<Production> prods; // All productions
-    std::list<std::string> cache;
 
     /* Returns a boolean that confirms if the received string is part of the
      * synthatic variables */
@@ -357,7 +356,7 @@ class LexicalAnalyzer {
     }
 
     /* Test if the string is valid. */
-    bool testStr(std::string str, bool cacheDebug = false) {
+    bool testStr(std::string str) {
       std::string term, top, c = "";
       std::stack<std::string> stack;
       Variable *v;
@@ -365,8 +364,6 @@ class LexicalAnalyzer {
       size_t pos;
 
       str.append(" $");
-
-      if(cacheDebug) cache.clear();
 
       if (!prods.empty()) {
         stack.push("$");
@@ -380,26 +377,16 @@ class LexicalAnalyzer {
           top = stack.top();
           // Same term
           if (top == term) {
-            if(cacheDebug) c.append(top);
             str.erase(0, pos+1);
             stack.pop();
           // No terminal that can get to term
           } else if( (v=getVar(top)) && v->table.find(top) != v->table.end()) {
-            if(cacheDebug) c.append(v->table[top]->toString());
             stack.pop();
             for(std::string e : v->termProd(top)) stack.push(e);
           // No terminal that can be epsilon
           } else if(v->hasTerm(EPSILON)) stack.pop();
           // Error
           else return false;
-
-          if (cacheDebug) {
-            c.append("    |    ");
-            c.append(stack.top());
-            c.append("    |    ");
-            c.append(str);
-            cache.push_back(c);
-          }
         }
         if(str.compare("$") == 0 && stack.top().compare("$") == 0) return true;
       }
@@ -423,7 +410,7 @@ class LexicalAnalyzer {
   public:
     LexicalAnalyzer() { isLL = false; ver = 1; }
 
-    void clear() { vars.clear(); terms.clear(); prods.clear(); cache.clear(); }
+    void clear() { vars.clear(); terms.clear(); prods.clear(); }
 
     /* Parses a given list of productions. If the sintax is valid it returns
      * true, else it returns false.
@@ -482,9 +469,7 @@ class LexicalAnalyzer {
       return true;
     }
 
-    bool validStr(const std::string &str, bool debug=false) {
-      return testStr(str, debug);
-    }
+    bool validStr(const std::string &str) { return testStr(str); }
 
     bool is_ll() { return isLL; }
 
@@ -496,10 +481,6 @@ class LexicalAnalyzer {
       }
       str.pop_back();
       return str;
-    }
-
-    void printCache() {
-      for(std::string str : cache) fprintf(stdout, "%s\n", str.c_str());
     }
 
     const std::list<std::string> getVariables() {
