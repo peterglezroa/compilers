@@ -47,6 +47,7 @@ void compare_lists(std::list<std::string> list1, std::list<std::string> list2) {
 int main(int argc, char *argv[]) {
   LexicalAnalyzer analyzer = LexicalAnalyzer();
 
+// ================================= TEST 01 =================================
   fprintf(stdout, "===================== TEST 01 =====================\n");
   analyzer.parse({
     "E -> T EPrime",
@@ -93,9 +94,11 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test LL(1): ");
   (analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
+// ================================= TEST 01 =================================
 
   analyzer.clear();
 
+// ================================= TEST 02 =================================
   fprintf(stdout, "===================== TEST 02 =====================\n");
   analyzer.parse({
     "E -> E + T",
@@ -132,9 +135,11 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test LL(1): ");
   (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
+// ================================= TEST 02 =================================
 
   analyzer.clear();
 
+// ================================= TEST 03 =================================
   fprintf(stdout, "===================== TEST 03 =====================\n");
   analyzer.parse({
     "A -> a A",
@@ -175,9 +180,11 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test LL(1): ");
   (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
+// ================================= TEST 03 =================================
 
   analyzer.clear();
 
+// ================================= TEST 04 =================================
   fprintf(stdout, "===================== TEST 04 =====================\n");
   analyzer.parse({
     "bexpr -> bexpr or bterm",
@@ -216,9 +223,11 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test LL(1): ");
   (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
+// ================================= TEST 04 =================================
 
   analyzer.clear();
 
+// ================================= TEST 05 =================================
   fprintf(stdout, "===================== TEST 05 =====================\n");
   analyzer.parse({
     "S -> A a",
@@ -256,6 +265,56 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test LL(1): ");
   (!analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
+// ================================= TEST 05 =================================
+
+  analyzer.clear();
+
+// ================================= TEST 06 =================================
+  fprintf(stdout, "===================== TEST 06 =====================\n");
+  analyzer.parse({
+    "goal -> A",
+    "A -> ( A )",
+    "A -> two",
+    "two -> a",
+    "two -> b",
+  });
+
+  // No Terminals and Terminals
+  fprintf(stdout, "Test synthatic variables: ");
+  compare_lists(analyzer.getVariables(), {"goal", "A", "two"});
+  fprintf(stdout, "Test terminals: ");
+  compare_lists(analyzer.getTerminals(), {"(", ")", "a", "b"});
+
+  // Firsts
+  fprintf(stdout, "Test FIRST(goal): ");
+  compare_lists(analyzer.getFirst("goal"), {"(", "a", "b"});
+  fprintf(stdout, "Test FIRST(A): ");
+  compare_lists(analyzer.getFirst("A"), {"(", "a", "b"});
+  fprintf(stdout, "Test FIRST(two): ");
+  compare_lists(analyzer.getFirst("two"), {"a", "b"});
+
+  // Follows
+  fprintf(stdout, "Test FOLLOW(goal): ");
+  compare_lists(analyzer.getFollow("goal"), {"$"});
+  fprintf(stdout, "Test FOLLOW(A): ");
+  compare_lists(analyzer.getFollow("A"), {")"});
+  fprintf(stdout, "Test FOLLOW(two): ");
+  compare_lists(analyzer.getFollow("two"), {")"});
+
+  // LL? (Yes)
+  fprintf(stdout, "Test LL(1): ");
+  (analyzer.is_ll())? print_correct() : print_incorrect();
+
+  // Table
+  fprintf(stdout, "Test LL Table: ");
+  compare_maps(analyzer.getLlTable()["goal"], {
+    {"(", {"A"}},
+    {"a", {"A"}},
+    {"b", {"A"}}
+})
+  fprintf(stdout, "\n");
+// ================================= TEST 06 =================================
+
 
   return 0;
 }
