@@ -12,6 +12,8 @@
 #define RULEREGEX "([A-Za-z_-]+) ?-> ?(.*)"
 #define EPSILON "''"
 
+char LABUFFER[255];
+
 class Production {
   private:
     std::string variable;
@@ -79,16 +81,6 @@ class Variable {
       return std::find(first.begin(), first.end(), term) != first.end();
     }
 
-    /* Returns a list of the elements of the production that gets to the term */
-    std::list<std::string> termProd(std::string term) const {
-      auto it = table.find(term);
-
-      if(it == table.end())
-        throw std::runtime_error("Variable can not get to terminal!");
-
-      return it->second->getElements();
-    }
-
     std::string toString() {
       std::string str = name;
       str.append(": FIRST={");
@@ -107,13 +99,11 @@ class Variable {
       if(!table.empty()) {
         std::map<std::string, Production*>::iterator it;
         for (it = table.begin(); it != table.end(); it++) {
-          str.append(it->first);
-          str.append(": ");
-          str.append(it->second->toString());
-          str.append(", ");
+          sprintf(LABUFFER, "'%s': %s, ",
+            it->first.c_str(), it->second->toString().c_str());
+          str.append(LABUFFER);
         }
-        str.pop_back();
-        str.pop_back();
+        str.pop_back(); str.pop_back();
       }
       str.append("}");
 
@@ -132,6 +122,13 @@ class LexicalAnalyzer {
     std::list<Variable> vars; // Syntathic variables
     std::list<std::string> terms; // Terminals
     std::list<Production> prods; // All productions
+
+    FILE *logFile;
+
+    /* Function to log the activity of the lexical analyzer */
+    void log(const char str[]) {
+      if (logFile != NULL) fprintf(logFile, "%s", str);
+    }
 
     /* Returns a boolean that confirms if the received string is part of the
      * synthatic variables */
@@ -340,14 +337,16 @@ class LexicalAnalyzer {
       if (!isLL) throw std::runtime_error("Is not LL!");
       else if(var == NULL) throw std::runtime_error("Could not find variable!");
       else {
-        varProds = productions(var->name);
         for(const std::string term : var->first) {
-          for (prodIt = varProds.begin(); prodIt != varProds.end(); prodIt++) {
-            front = prodIt->elements.front();
-            if (term.compare(front) == 0 || // Same as Terminal
-            (*var != front && (oVar=getVar(front)) && oVar->hasTerm(term)) ){
-              // Other variable that has term in first
-              map.insert(std::pair<std::string, Production*>(term, &(*prodIt)));
+          for (prodIt = prods.begin(); prodIt != prods.end(); prodIt++) {
+            if ((*var) == prodIt->variable) {
+              front = prodIt->elements.front();
+              if (term.compare(front) == 0 || // Same as Terminal
+              (*var != front && (oVar=getVar(front)) && oVar->hasTerm(term)) ){
+                // Other variable that has term in first
+                map.insert(std::pair<std::string, Production*>(
+                  term, &(*prodIt)));
+              }
             }
           }
         }
@@ -357,39 +356,50 @@ class LexicalAnalyzer {
 
     /* Test if the string is valid. */
     bool testStr(std::string str) {
-      std::string term, top, c = "";
+      std::string term, top;
       std::stack<std::string> stack;
+      std::list<std::string> pels;
+      std::list<std::string>::reverse_iterator rit;
       Variable *v;
       Production* prod;
       size_t pos;
+
+      sprintf(LABUFFER, "\nTesting string '%s'", str.c_str()); log(LABUFFER);
 
       str.append(" $");
 
       if (!prods.empty()) {
         stack.push("$");
-        stack.push(prods.front().variable);
-        while ((pos = str.find(' ')) != std::string::npos) {
-          c = "";
+        stack.push(prods.front().variable); while ((pos = str.find(' ')) != std::string::npos) {
           term = str.substr(0, pos);
-
-          if (stack.empty() || stack.top().compare("$") == 0) return false;
-          
+          if (stack.empty() || stack.top().compare("$") == 0) break;
           top = stack.top();
+          sprintf(LABUFFER, "\n%s\t|\t%s", top.c_str(), str.c_str());
+          log(LABUFFER);
+
+
           // Same term
-          if (top == term) {
+          if (top.compare(term) == 0) {
             str.erase(0, pos+1);
             stack.pop();
+            sprintf(LABUFFER, "\t|\t%s", top.c_str()); log(LABUFFER);
           // No terminal that can get to term
-          } else if( (v=getVar(top)) && v->table.find(top) != v->table.end()) {
+          } else if( (v=getVar(top)) && v->hasTerm(term)) {
+            sprintf(LABUFFER, "\t|\t%s", v->table[term]->toString().c_str());
+            log(LABUFFER);
             stack.pop();
-            for(std::string e : v->termProd(top)) stack.push(e);
+
+            pels = v->table[term]->elements;
+            for(rit=pels.rbegin(); rit!=pels.rend(); rit++) stack.push(*rit);
           // No terminal that can be epsilon
-          } else if(v->hasTerm(EPSILON)) stack.pop();
+          } //else if(v->hasTerm(EPSILON)) stack.pop();
           // Error
-          else return false;
+          else break;
         }
+        log("\n");
         if(str.compare("$") == 0 && stack.top().compare("$") == 0) return true;
       }
+      log("ERROR\n");
       return false;
     }
 
@@ -397,20 +407,29 @@ class LexicalAnalyzer {
      * so many first, follow, is_ll, and LLTable */
     void update() {
       ver++;
+      sprintf(LABUFFER, "\nUpdating to version %i...\n", ver); log(LABUFFER);
+      isLL = calcIsLL();
+      (isLL)? log("It's LL\n") : log("It is not LL\n");
       for (auto it = vars.begin(); it != vars.end(); it++) {
         if(it->firVer != ver) it->updateFirst(calcFirst(it->name), ver);
         if(it->folVer != ver) it->updateFollow(calcFollow(it->name), ver);
+        if(isLL) it->table = calcTable(it->name);
+        sprintf(LABUFFER, "%s\n", it->toString().c_str()); log(LABUFFER);
       }
-      isLL = calcIsLL();
-
-      if(isLL)
-        for (auto it = vars.begin(); it != vars.end(); it++) it->table = calcTable(it->name);
     }
 
   public:
-    LexicalAnalyzer() { isLL = false; ver = 1; }
+    LexicalAnalyzer() { isLL = false; ver = 1; logFile = NULL; }
 
-    void clear() { vars.clear(); terms.clear(); prods.clear(); }
+    LexicalAnalyzer(FILE *logFile_):logFile(logFile_) { isLL=false; ver=0; }
+
+    void clear() {
+      log("\nClearing lexical analyzer...\n");
+      log("==============================================================\n\n");
+      vars.clear();
+      terms.clear();
+      prods.clear();
+    }
 
     /* Parses a given list of productions. If the sintax is valid it returns
      * true, else it returns false.
@@ -434,6 +453,8 @@ class LexicalAnalyzer {
 
       // Does not match regex
       if (!std::regex_match(production, productionRegex)) return false;
+
+      sprintf(LABUFFER, "Parsing %s\n", production.c_str()); log(LABUFFER);
 
       // Find the divider between variable and terminals
       pos = production.find(" -> ");

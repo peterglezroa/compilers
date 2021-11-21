@@ -1,0 +1,148 @@
+Parsing E -> T EPrime
+Parsing EPrime -> + T EPrime
+Parsing EPrime -> ''
+Parsing T -> F TPrime
+Parsing TPrime -> * F TPrime
+Parsing TPrime -> ''
+Parsing F -> ( E )
+Parsing F -> id
+
+Updating to version 1...
+It's LL
+E: FIRST={(,id} FOLLOW={$,)}, MAP={'(': E -> T EPrime, 'id': E -> T EPrime}
+EPrime: FIRST={'',+} FOLLOW={$,)}, MAP={'''': EPrime -> '', '+': EPrime -> + T EPrime}
+T: FIRST={(,id} FOLLOW={$,),+}, MAP={'(': T -> F TPrime, 'id': T -> F TPrime}
+TPrime: FIRST={'',*} FOLLOW={$,),+}, MAP={'''': TPrime -> '', '*': TPrime -> * F TPrime}
+F: FIRST={(,id} FOLLOW={$,),*,+}, MAP={'(': F -> ( E ), 'id': F -> id}
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing E -> E + T
+Parsing E -> T
+Parsing T -> T * F
+Parsing T -> F
+Parsing F -> id
+Parsing F -> ( E )
+
+Updating to version 2...
+It is not LL
+E: FIRST={(,id} FOLLOW={$,),+}, MAP={}
+T: FIRST={(,id} FOLLOW={$,),*,+}, MAP={}
+F: FIRST={(,id} FOLLOW={$,),*,+}, MAP={}
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing A -> a A
+Parsing A -> b A
+Parsing A -> a B
+Parsing B -> b C
+Parsing C -> b D
+Parsing D -> ''
+
+Updating to version 3...
+It is not LL
+A: FIRST={a,b} FOLLOW={$}, MAP={}
+B: FIRST={b} FOLLOW={$}, MAP={}
+C: FIRST={b} FOLLOW={$}, MAP={}
+D: FIRST={''} FOLLOW={$}, MAP={}
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing bexpr -> bexpr or bterm
+Parsing bexpr -> bterm
+Parsing bterm -> bterm and bfactor
+Parsing bterm -> bfactor
+Parsing bfactor -> not bfactor
+Parsing bfactor -> ( bexpr )
+Parsing bfactor -> true
+Parsing bfactor -> false
+
+Updating to version 4...
+It is not LL
+bexpr: FIRST={(,false,not,true} FOLLOW={$,),or}, MAP={}
+bterm: FIRST={(,false,not,true} FOLLOW={$,),and,or}, MAP={}
+bfactor: FIRST={(,false,not,true} FOLLOW={$,),and,or}, MAP={}
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing S -> A a
+Parsing S -> b
+Parsing A -> b d APrime
+Parsing A -> APrime
+Parsing APrime -> c APrime
+Parsing APrime -> a d APrime
+Parsing APrime -> ''
+
+Updating to version 5...
+It's LL
+S: FIRST={a,b,c} FOLLOW={$}, MAP={'a': S -> A a, 'b': S -> A a, 'c': S -> A a}
+A: FIRST={'',a,b,c} FOLLOW={a}, MAP={'''': A -> APrime, 'a': A -> APrime, 'b': A -> b d APrime, 'c': A -> APrime}
+APrime: FIRST={'',a,c} FOLLOW={a}, MAP={'''': APrime -> '', 'a': APrime -> a d APrime, 'c': APrime -> c APrime}
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing goal -> A
+Parsing A -> ( A )
+Parsing A -> two
+Parsing two -> a
+Parsing two -> b
+
+Updating to version 6...
+It's LL
+goal: FIRST={(,a,b} FOLLOW={$}, MAP={'(': goal -> A, 'a': goal -> A, 'b': goal -> A}
+A: FIRST={(,a,b} FOLLOW={$,)}, MAP={'(': A -> ( A ), 'a': A -> two, 'b': A -> two}
+two: FIRST={a,b} FOLLOW={$,)}, MAP={'a': two -> a, 'b': two -> b}
+
+Testing string '( ( a ) )'
+goal	|	( ( a ) ) $	|	goal -> A
+A	|	( ( a ) ) $	|	A -> ( A )
+(	|	( ( a ) ) $	|	(
+A	|	( a ) ) $	|	A -> ( A )
+(	|	( a ) ) $	|	(
+A	|	a ) ) $	|	A -> two
+two	|	a ) ) $	|	two -> a
+a	|	a ) ) $	|	a
+)	|	) ) $	|	)
+)	|	) $	|	)
+
+Testing string '( a ) )'
+goal	|	( a ) ) $	|	goal -> A
+A	|	( a ) ) $	|	A -> ( A )
+(	|	( a ) ) $	|	(
+A	|	a ) ) $	|	A -> two
+two	|	a ) ) $	|	two -> a
+a	|	a ) ) $	|	a
+)	|	) ) $	|	)
+ERROR
+
+Testing string '( ( ( ( ( b ) ) ) ) )'
+goal	|	( ( ( ( ( b ) ) ) ) ) $	|	goal -> A
+A	|	( ( ( ( ( b ) ) ) ) ) $	|	A -> ( A )
+(	|	( ( ( ( ( b ) ) ) ) ) $	|	(
+A	|	( ( ( ( b ) ) ) ) ) $	|	A -> ( A )
+(	|	( ( ( ( b ) ) ) ) ) $	|	(
+A	|	( ( ( b ) ) ) ) ) $	|	A -> ( A )
+(	|	( ( ( b ) ) ) ) ) $	|	(
+A	|	( ( b ) ) ) ) ) $	|	A -> ( A )
+(	|	( ( b ) ) ) ) ) $	|	(
+A	|	( b ) ) ) ) ) $	|	A -> ( A )
+(	|	( b ) ) ) ) ) $	|	(
+A	|	b ) ) ) ) ) $	|	A -> two
+two	|	b ) ) ) ) ) $	|	two -> b
+b	|	b ) ) ) ) ) $	|	b
+)	|	) ) ) ) ) $	|	)
+)	|	) ) ) ) $	|	)
+)	|	) ) ) $	|	)
+)	|	) ) $	|	)
+)	|	) $	|	)
+
+Testing string '( ( ( ( ( a b ) ) ) ) )'
+goal	|	( ( ( ( ( a b ) ) ) ) ) $	|	goal -> A
+A	|	( ( ( ( ( a b ) ) ) ) ) $	|	A -> ( A )
+(	|	( ( ( ( ( a b ) ) ) ) ) $	|	(
+A	|	( ( ( ( a b ) ) ) ) ) $	

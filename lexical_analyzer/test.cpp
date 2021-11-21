@@ -47,7 +47,16 @@ void compare_lists(std::list<std::string> list1, std::list<std::string> list2) {
 }
 
 int main(int argc, char *argv[]) {
-  LexicalAnalyzer analyzer = LexicalAnalyzer();
+  FILE *log = NULL;
+
+  // Passed a log file
+  if (argc == 2)
+    if ( (log = fopen(argv[1], "w")) == NULL ) {
+      fprintf(stderr, "Could not open log file.");
+      return -1;
+    }
+
+  LexicalAnalyzer analyzer = LexicalAnalyzer(log);
 
 // ================================= TEST 01 =================================
   fprintf(stdout, "===================== TEST 01 =====================\n");
@@ -320,48 +329,60 @@ int main(int argc, char *argv[]) {
 
   fprintf(stdout, "Test string '( ( ( ( ( a b ) ) ) ) )': ");
   (!analyzer.validStr("( ( ( ( ( a b ) ) ) ) )"))? print_correct() : print_incorrect();
-
-  /*
-  // Table
-  fprintf(stdout, "Test LL Table: ");
-  compare_lists(analyzer.getLlTableAsHTML(), {
-    "<table>",
-    " <tr>",
-    "   <th>Non Terminal</th>",
-    "   <th>(</th>",
-    "   <th>)</th>",
-    "   <th>a</th>",
-    "   <th>b</th>",
-    "   <th>$</th>",
-    " </tr>",
-    " <tr>",
-    "   <td>goal</td>",
-    "   <td>goal -> A</td>",
-    "   <td></td>",
-    "   <td>goal -> A</td>",
-    "   <td>goal -> A</td>",
-    " </tr>",
-    " <tr>",
-    "   <td>A</td>",
-    "   <td>A -> ( A )</td>",
-    "   <td></td>",
-    "   <td>A -> two</td>",
-    "   <td>A -> two</td>",
-    " </tr>",
-    " <tr>",
-    "   <td>two</td>",
-    "   <td></td>",
-    "   <td></td>",
-    "   <td>two -> a</td>",
-    "   <td>two -> b</td>",
-    " </tr>",
-    "</table>",
-  });
-  */
   fprintf(stdout, "\n");
 // ================================= TEST 06 =================================
 
+  analyzer.clear();
 
+// ================================= TEST 07 =================================
+  fprintf(stdout, "===================== TEST 07 =====================\n");
+  analyzer.parse({
+    "E -> T X",
+    "X -> + E",
+    "X -> ''",
+    "T -> int",
+    "T -> ( E )",
+    "Y -> * T",
+    "Y -> ''",
+  });
 
+  // No Terminals and Terminals
+  fprintf(stdout, "Test synthatic variables: ");
+  compare_lists(analyzer.getVariables(), {"E", "X", "T", "Y"});
+  fprintf(stdout, "Test terminals: ");
+  compare_lists(analyzer.getTerminals(), {"+", "int", "(", ")", "*"});
+
+  // Firsts
+  fprintf(stdout, "Test FIRST(E): ");
+  compare_lists(analyzer.getFirst("E"), {"(", "int"});
+  fprintf(stdout, "Test FIRST(X): ");
+  compare_lists(analyzer.getFirst("X"), {"+", EPSILON});
+  fprintf(stdout, "Test FIRST(T): ");
+  compare_lists(analyzer.getFirst("T"), {"int", "("});
+  fprintf(stdout, "Test FIRST(Y): ");
+  compare_lists(analyzer.getFirst("Y"), {"*", EPSILON});
+
+  // Follows
+  fprintf(stdout, "Test FOLLOW(E): ");
+  compare_lists(analyzer.getFollow("E"), {"+", "$", ")"});
+  fprintf(stdout, "Test FOLLOW(X): ");
+  compare_lists(analyzer.getFollow("X"), {"+", "$", ")"});
+  fprintf(stdout, "Test FOLLOW(T): ");
+  compare_lists(analyzer.getFollow("T"), {"+", "$"});
+  fprintf(stdout, "Test FOLLOW(Y): ");
+  compare_lists(analyzer.getFollow("Y"), {"+", "$"});
+
+  // LL? (Yes)
+  fprintf(stdout, "Test LL(1): ");
+  (analyzer.is_ll())? print_correct() : print_incorrect();
+
+  // Accept string
+  fprintf(stdout, "Test string 'int * ( int + int )': ");
+  (analyzer.validStr("int * ( int + int )"))? print_correct() : print_incorrect();
+
+  fprintf(stdout, "\n");
+// ================================= TEST 06 =================================
+
+  if (log != NULL) fclose(log);
   return 0;
 }
