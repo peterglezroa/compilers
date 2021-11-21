@@ -42,14 +42,31 @@ class Production {
 class Variable {
   private:
     std::string name;
+    int firVer; // Integer used for version control and optimize updates
     std::list<std::string> first;
+    int folVer; // Integer used for version control and optimize updates
     std::list<std::string> follow;
+    int tabVer; // Integer used for version control and optimize updates
     std::map<std::string, Production*> table;
 
     friend class LexicalAnalyzer;
 
+    /* Function to update the current version of the first list */
+    void updateFirst(std::list<std::string> first_, int version) {
+      first.clear();
+      first = first_;
+      firVer = version;
+    }
+
+    /* Function to update the current version of the follow list */
+    void updateFollow(std::list<std::string> follow_, int version) {
+      follow.clear();
+      follow = follow_;
+      folVer = version;
+    }
+
   public:
-    Variable(std::string name_) : name(name_) {}
+    Variable(std::string name_) : name(name_) { firVer=0; folVer=0; tabVer=0; }
 
     bool operator == (const Variable &v) { return name.compare(v.name) == 0; }
 
@@ -98,6 +115,7 @@ class Variable {
 
 class LexicalAnalyzer {
   private:
+    int ver; // Version control
     bool isLL;
     std::list<Variable> vars; // Syntathic variables
     std::list<std::string> terms; // Terminals
@@ -132,14 +150,19 @@ class LexicalAnalyzer {
       return list;
     }
 
-    /* Runs a calculation for returning first of a specific string. It ignores
-     * if the firsts are already on memory. Returns the list of firsts. */
+    /* Runs a calculation for returning first of a specific string.
+     * Returns the list of firsts for an specific string. */
     std::list<std::string> calcFirst(std::string str) {
       std::list<std::string> firsts;
+      Variable *v;
 
       // First rule: first of a terminal
       if (has_term(str) || str.compare(EPSILON) == 0) firsts.push_back(str);
-      else if (has_var(str)) {
+      else if ( (v=getVar(str)) != NULL) {
+        // Ignores if the version is updated
+        if (v->firVer == ver) return v->first;
+
+        // Version is not updated thus needs to update
         for (const Production production : prods) {
           if (str.compare(production.variable) == 0 &&
               str.compare(production.elements.front()) != 0) {
@@ -158,14 +181,19 @@ class LexicalAnalyzer {
             firsts.splice(firsts.end(), ff);
           }
         }
+
+        // Clean list
+        firsts.sort();
+        firsts.unique();
+
+        // Update var version
+        v->updateFirst(firsts, ver);
       } else {
         fprintf(stderr, "Not part of synthatic variabels or terminals (%s)!\n",
           str.c_str());
         throw std::runtime_error("Not part of variables or terminals!");
       }
 
-      firsts.sort();
-      firsts.unique(); // Clean List
       return firsts;
     }
 
@@ -174,13 +202,18 @@ class LexicalAnalyzer {
     std::list<std::string> calcFollow(std::string str) {
       std::list<std::string> follows;
       bool first = true;
+      Variable *v = getVar(str);
 
-      if (!has_var(str) && !has_term(str)) {
-        fprintf(stderr, "Not part of synthatic variabels or terminals (%s)!\n",
+      if (v == NULL) {
+        fprintf(stderr, "Not part of synthatic variables (%s)!\n",
           str.c_str());
-        throw std::runtime_error("Not part of variables or terminals!");
+        throw std::runtime_error("Not part of variables!");
       }
 
+      // Ignores if the version is updated
+      if (v->folVer == ver) return v->follow;
+
+      // Follow needs to be updated
       for (const Production prod : prods) {
         // First rule
         if (first && prod.variable.compare(str) == 0)
@@ -189,7 +222,7 @@ class LexicalAnalyzer {
         for (auto it = prod.elements.begin(); it != prod.elements.end(); it++) {
           if (it->compare(str) == 0) {
             // See next terminal
-            if (it != prod.elements.end() && std::next(it) != prod.elements.end()) {
+            if (it!=prod.elements.end() && std::next(it)!=prod.elements.end()) {
               // Second rule
               // FIRST of the following terminal
               std::list<std::string> fnext = this->calcFirst(*std::next(it));
@@ -211,6 +244,10 @@ class LexicalAnalyzer {
       follows.remove(EPSILON);
       follows.sort();
       follows.unique();
+
+      // Update var version
+      v->updateFollow(follows, ver);
+
       return follows;
     }
 
@@ -280,19 +317,34 @@ class LexicalAnalyzer {
       return true;
     }
 
+    /* Runs a calculation return the row of the LL table for an specific var.
+     * Ignores if it was already calculated. *
+    std::map<std::string, Production*> calcTable(const std::string &variable) {
+      Variable *var = getVar(variable);
+      if (!isLL) throw std::runtime_error("Is not LL!");
+      else if(var == NULL) throw std::runtime_error("Could not find variable!");
+      else {
+        for(const std::string term : var.first) {
+          
+        }
+      }
+    }
+    */
+
     /* Updates the Variables and if it is LL so we do not need to calculate 
      * so many first, follow, is_ll, and LLTable */
     void update() {
+      ver++;
       for (auto it = vars.begin(); it != vars.end(); it++) {
-        it->first = calcFirst(it->name);
-        it->follow = calcFollow(it->name);
-//        var.table = calcTable();
+        if(it->firVer != ver) it->updateFirst(calcFirst(it->name), ver);
+        if(it->folVer != ver) it->updateFollow(calcFollow(it->name), ver);
+//        if(it->tabVer != ver) it->updateTable(calcTable(it->name), ver);
       }
       isLL = calcIsLL();
     }
 
   public:
-    LexicalAnalyzer() { isLL = false; }
+    LexicalAnalyzer() { isLL = false; ver = 1; }
 
     void clear() { vars.clear(); terms.clear(); prods.clear(); }
 

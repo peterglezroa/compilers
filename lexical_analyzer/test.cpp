@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
 
   analyzer.clear();
 
-/*
+
 // ================================= TEST 06 =================================
   fprintf(stdout, "===================== TEST 06 =====================\n");
   analyzer.parse({
@@ -298,24 +298,54 @@ int main(int argc, char *argv[]) {
   fprintf(stdout, "Test FOLLOW(goal): ");
   compare_lists(analyzer.getFollow("goal"), {"$"});
   fprintf(stdout, "Test FOLLOW(A): ");
-  compare_lists(analyzer.getFollow("A"), {")"});
+  compare_lists(analyzer.getFollow("A"), {")", "$"});
   fprintf(stdout, "Test FOLLOW(two): ");
-  compare_lists(analyzer.getFollow("two"), {")"});
+  compare_lists(analyzer.getFollow("two"), {")", "$"});
 
   // LL? (Yes)
   fprintf(stdout, "Test LL(1): ");
   (analyzer.is_ll())? print_correct() : print_incorrect();
 
+  /*
   // Table
   fprintf(stdout, "Test LL Table: ");
-  compare_maps(analyzer.getLlTable()["goal"], {
-    {"(", {"A"}},
-    {"a", {"A"}},
-    {"b", {"A"}}
-})
+  compare_lists(analyzer.getLlTableAsHTML(), {
+    "<table>",
+    " <tr>",
+    "   <th>Non Terminal</th>",
+    "   <th>(</th>",
+    "   <th>)</th>",
+    "   <th>a</th>",
+    "   <th>b</th>",
+    "   <th>$</th>",
+    " </tr>",
+    " <tr>",
+    "   <td>goal</td>",
+    "   <td>goal -> A</td>",
+    "   <td></td>",
+    "   <td>goal -> A</td>",
+    "   <td>goal -> A</td>",
+    " </tr>",
+    " <tr>",
+    "   <td>A</td>",
+    "   <td>A -> ( A )</td>",
+    "   <td></td>",
+    "   <td>A -> two</td>",
+    "   <td>A -> two</td>",
+    " </tr>",
+    " <tr>",
+    "   <td>two</td>",
+    "   <td></td>",
+    "   <td></td>",
+    "   <td>two -> a</td>",
+    "   <td>two -> b</td>",
+    " </tr>",
+    "</table>",
+  });
+  */
   fprintf(stdout, "\n");
 // ================================= TEST 06 =================================
-*/
+
 
 
   return 0;
