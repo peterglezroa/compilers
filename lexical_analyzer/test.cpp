@@ -269,6 +269,7 @@ int main(int argc, char *argv[]) {
 
   analyzer.clear();
 
+/*
 // ================================= TEST 06 =================================
   fprintf(stdout, "===================== TEST 06 =====================\n");
   analyzer.parse({
@@ -314,6 +315,7 @@ int main(int argc, char *argv[]) {
 })
   fprintf(stdout, "\n");
 // ================================= TEST 06 =================================
+*/
 
 
   return 0;
