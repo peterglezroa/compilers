@@ -8,7 +8,6 @@
 #include <map>
 #include <regex>
 #include <string>
-#include <vector>
 
 #define RULEREGEX "([A-Za-z_-]+) ?-> ?(.*)"
 #define EPSILON "''"
@@ -46,8 +45,7 @@ class Variable {
     std::list<std::string> first;
     int folVer; // Integer used for version control and optimize updates
     std::list<std::string> follow;
-    int tabVer; // Integer used for version control and optimize updates
-    std::map<std::string, Production*> table;
+    std::map<std::string, Production> table;
 
     friend class LexicalAnalyzer;
 
@@ -66,7 +64,7 @@ class Variable {
     }
 
   public:
-    Variable(std::string name_) : name(name_) { firVer=0; folVer=0; tabVer=0; }
+    Variable(std::string name_) : name(name_) { firVer=0; folVer=0; }
 
     bool operator == (const Variable &v) { return name.compare(v.name) == 0; }
 
@@ -77,8 +75,8 @@ class Variable {
     bool operator != (const std::string &str) { return str.compare(name) !=0; }
 
     /* Returns if the variable can get to an specific terminal. */
-    bool has_term(std::string term) {
-      return (table.find(term) != table.end());
+    bool hasTerm(std::string term) {
+      return std::find(first.begin(), first.end(), term) != first.end();
     }
 
     /* Returns a list of the elements of the production that gets to the term */
@@ -88,7 +86,7 @@ class Variable {
       if(it == table.end())
         throw std::runtime_error("Variable can not get to terminal!");
 
-      return it->second->getElements();
+      return it->second.getElements();
     }
 
     std::string toString() {
@@ -98,10 +96,24 @@ class Variable {
         for (const std::string f : first) { str.append(f); str.append(","); }
         str.pop_back(); // Pop last ','
       }
+
       str.append("} FOLLOW={");
       if(!follow.empty()) {
         for (const std::string f : follow) { str.append(f); str.append(","); }
         str.pop_back(); // Pop last ','
+      }
+
+      str.append("}, MAP={");
+      if(!table.empty()) {
+        std::map<std::string, Production>::iterator it;
+        for (it = table.begin(); it != table.end(); it++) {
+          str.append(it->first);
+          str.append(": ");
+          str.append(it->second.toString());
+          str.append(", ");
+        }
+        str.pop_back();
+        str.pop_back();
       }
       str.append("}");
 
@@ -123,7 +135,7 @@ class LexicalAnalyzer {
 
     /* Returns a boolean that confirms if the received string is part of the
      * synthatic variables */
-    bool has_var(std::string &str) {
+    bool hasVar(std::string &str) {
       return std::find(vars.begin(), vars.end(), str) != vars.end();
     }
 
@@ -137,7 +149,7 @@ class LexicalAnalyzer {
 
     /* Returns a boolean that confirms if the received string is part of the
      * terminals */
-    bool has_term(std::string &str) {
+    bool hasTerm(std::string &str) {
       return std::find(terms.begin(), terms.end(), str) != terms.end();
     }
 
@@ -157,7 +169,7 @@ class LexicalAnalyzer {
       Variable *v;
 
       // First rule: first of a terminal
-      if (has_term(str) || str.compare(EPSILON) == 0) firsts.push_back(str);
+      if (hasTerm(str) || str.compare(EPSILON) == 0) firsts.push_back(str);
       else if ( (v=getVar(str)) != NULL) {
         // Ignores if the version is updated
         if (v->firVer == ver) return v->first;
@@ -197,8 +209,8 @@ class LexicalAnalyzer {
       return firsts;
     }
 
-    /* Runs a calculation for returning follow of a specific string. It ignores
-     * if the follows are already on memory. Returns the list of follows. */
+    /* Runs a calculation for returning follow of a specific string.
+     * Returns the list of follows. */
     std::list<std::string> calcFollow(std::string str) {
       std::list<std::string> follows;
       bool first = true;
@@ -317,19 +329,30 @@ class LexicalAnalyzer {
       return true;
     }
 
-    /* Runs a calculation return the row of the LL table for an specific var.
-     * Ignores if it was already calculated. *
-    std::map<std::string, Production*> calcTable(const std::string &variable) {
-      Variable *var = getVar(variable);
+    /* Runs a calculation return the row of the LL table for an specific var. */
+    std::map<std::string, Production> calcTable(const std::string &variable) {
+      std::map<std::string, Production> map;
+      std::string front;
+      std::list<Production> varProds;
+      Variable *var = getVar(variable), *oVar;
+
       if (!isLL) throw std::runtime_error("Is not LL!");
       else if(var == NULL) throw std::runtime_error("Could not find variable!");
       else {
-        for(const std::string term : var.first) {
-          
+        varProds = productions(var->name);
+        for(const std::string term : var->first) {
+          for (Production prod : varProds) {
+            front = prod.elements.front();
+            if (term.compare(front) == 0 || // Same as Terminal
+            (*var != front && (oVar=getVar(front)) && oVar->hasTerm(term)) ){
+              // Other variable that has term in first
+              map.insert(std::pair<std::string, Production>(term, prod));
+            }
+          }
         }
       }
+      return map;
     }
-    */
 
     /* Updates the Variables and if it is LL so we do not need to calculate 
      * so many first, follow, is_ll, and LLTable */
@@ -338,9 +361,11 @@ class LexicalAnalyzer {
       for (auto it = vars.begin(); it != vars.end(); it++) {
         if(it->firVer != ver) it->updateFirst(calcFirst(it->name), ver);
         if(it->folVer != ver) it->updateFollow(calcFollow(it->name), ver);
-//        if(it->tabVer != ver) it->updateTable(calcTable(it->name), ver);
       }
       isLL = calcIsLL();
+
+      if(isLL)
+        for (auto it = vars.begin(); it != vars.end(); it++) it->table = calcTable(it->name);
     }
 
   public:
@@ -376,7 +401,7 @@ class LexicalAnalyzer {
 
       // Get variable and add it to list if not found
       variable = production.substr(0, pos);
-      if (!has_var(variable))
+      if (!hasVar(variable))
         vars.push_back(Variable(variable));
       Production prod = Production(variable);
 
@@ -389,7 +414,7 @@ class LexicalAnalyzer {
       // Iterate through words in the production
       while ((pos = production.find(' ')) != std::string::npos) {
         terminal = production.substr(0, pos);
-        if(!has_var(terminal)) terms.push_back(terminal);
+        if(!hasVar(terminal)) terms.push_back(terminal);
         prod.elements.push_back(terminal);
         production.erase(0, pos+1);
       }
