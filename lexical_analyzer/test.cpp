@@ -274,7 +274,7 @@ int main(int argc, char *argv[]) {
 
   // LL? (No)
   fprintf(stdout, "Test LL(1): ");
-  (!analyzer.is_ll())? print_correct() : print_incorrect();
+  (analyzer.is_ll())? print_correct() : print_incorrect();
   fprintf(stdout, "\n");
 // ================================= TEST 05 =================================
 
@@ -340,7 +340,7 @@ int main(int argc, char *argv[]) {
     "E -> T X",
     "X -> + E",
     "X -> ''",
-    "T -> int",
+    "T -> int Y",
     "T -> ( E )",
     "Y -> * T",
     "Y -> ''",
@@ -364,13 +364,13 @@ int main(int argc, char *argv[]) {
 
   // Follows
   fprintf(stdout, "Test FOLLOW(E): ");
-  compare_lists(analyzer.getFollow("E"), {"+", "$", ")"});
+  compare_lists(analyzer.getFollow("E"), {"$", ")"});
   fprintf(stdout, "Test FOLLOW(X): ");
-  compare_lists(analyzer.getFollow("X"), {"+", "$", ")"});
+  compare_lists(analyzer.getFollow("X"), {"$", ")"});
   fprintf(stdout, "Test FOLLOW(T): ");
-  compare_lists(analyzer.getFollow("T"), {"+", "$"});
+  compare_lists(analyzer.getFollow("T"), {"+", "$", ")"});
   fprintf(stdout, "Test FOLLOW(Y): ");
-  compare_lists(analyzer.getFollow("Y"), {"+", "$"});
+  compare_lists(analyzer.getFollow("Y"), {"+", "$", ")"});
 
   // LL? (Yes)
   fprintf(stdout, "Test LL(1): ");

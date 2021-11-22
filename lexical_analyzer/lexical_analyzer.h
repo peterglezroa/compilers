@@ -123,11 +123,31 @@ class LexicalAnalyzer {
     std::list<std::string> terms; // Terminals
     std::list<Production> prods; // All productions
 
+    std::list<std::string> cache;
     FILE *logFile;
+    bool logging;
 
     /* Function to log the activity of the lexical analyzer */
     void log(const char str[]) {
       if (logFile != NULL) fprintf(logFile, "%s", str);
+    }
+
+    /* Returns a boolean that confirms if the received string is part of the
+     * cache to avoid recursion */
+    bool inCache(std::string str) {
+      return std::find(cache.begin(), cache.end(), str) != cache.end();
+    }
+
+    /* Logs the cache */
+    void logCache() {
+      if (logging) {
+        log("CACHE: ");
+        for(std::string e : cache) {
+          sprintf(LABUFFER, "%s ", e.c_str());
+          log(LABUFFER);
+        }
+        log("\n");
+      }
     }
 
     /* Returns a boolean that confirms if the received string is part of the
@@ -222,11 +242,15 @@ class LexicalAnalyzer {
       // Ignores if the version is updated
       if (v->folVer == ver) return v->follow;
 
+      if (logging) {
+        sprintf(LABUFFER, "calcFollow(%s) ", str.c_str()); log(LABUFFER);
+        logCache();
+      }
+
       // Follow needs to be updated
       for (const Production prod : prods) {
         // First rule
-        if (first && prod.variable.compare(str) == 0)
-          follows.push_back("$");
+        if (first && prod.variable.compare(str) == 0) follows.push_back("$");
 
         for (auto it = prod.elements.begin(); it != prod.elements.end(); it++) {
           if (it->compare(str) == 0) {
@@ -240,15 +264,21 @@ class LexicalAnalyzer {
               // Third rule
               // If next can be EPSILON, then follow the variable
               if (str.compare(prod.variable) != 0 &&
-                  std::find(fnext.begin(), fnext.end(), EPSILON) != fnext.end())
+                  std::find(fnext.begin(),fnext.end(),EPSILON) != fnext.end()){
+                cache.push_back(str);
                 follows.splice(follows.end(), calcFollow(prod.variable));
-            } else if (str.compare(prod.variable) != 0)
-              // Third rule
+              }
+            } else if (str.compare(prod.variable) != 0 && !inCache(str)) {
+              // Third rule: Its the last one
+              cache.push_back(str);
               follows.splice(follows.end(), calcFollow(prod.variable));
+            }
           }
         }
         first = false;
       }
+
+      cache.remove(str);
 
       follows.remove(EPSILON);
       follows.sort();
@@ -366,38 +396,49 @@ class LexicalAnalyzer {
 
       sprintf(LABUFFER, "\nTesting string '%s'", str.c_str()); log(LABUFFER);
 
-      str.append(" $");
+      str.append(" $ ");
 
       if (!prods.empty()) {
         stack.push("$");
-        stack.push(prods.front().variable); while ((pos = str.find(' ')) != std::string::npos) {
+        stack.push(prods.front().variable);
+        while ((pos = str.find(' ')) != std::string::npos) {
           term = str.substr(0, pos);
-          if (stack.empty() || stack.top().compare("$") == 0) break;
-          top = stack.top();
-          sprintf(LABUFFER, "\n%s\t|\t%s", top.c_str(), str.c_str());
-          log(LABUFFER);
 
+          if (stack.empty()) break;
+          top = stack.top();
+
+          if (logging) {
+            sprintf(LABUFFER, "\n%s\t|\t%s", top.c_str(), str.c_str());
+            log(LABUFFER);
+          }
+
+          if (top.compare("$") == 0) break;
 
           // Same term
           if (top.compare(term) == 0) {
             str.erase(0, pos+1);
             stack.pop();
             sprintf(LABUFFER, "\t|\t%s", top.c_str()); log(LABUFFER);
+            if(!stack.empty()) log(stack.top().c_str());
           // No terminal that can get to term
           } else if( (v=getVar(top)) && v->hasTerm(term)) {
-            sprintf(LABUFFER, "\t|\t%s", v->table[term]->toString().c_str());
-            log(LABUFFER);
+            if(logging) {
+              sprintf(LABUFFER, "\t|\t%s", v->table[term]->toString().c_str());
+              log(LABUFFER);
+            }
             stack.pop();
 
             pels = v->table[term]->elements;
             for(rit=pels.rbegin(); rit!=pels.rend(); rit++) stack.push(*rit);
           // No terminal that can be epsilon
-          } //else if(v->hasTerm(EPSILON)) stack.pop();
-          // Error
-          else break;
+          } else if(v && v->hasTerm(EPSILON)) {
+            if (logging) log("\t|\tEPSILON");
+            stack.pop();
+          } else break;
         }
-        log("\n");
-        if(str.compare("$") == 0 && stack.top().compare("$") == 0) return true;
+        if (logging) log("\n");
+        if(str.compare("$ ") == 0 && !stack.empty() &&
+            stack.top().compare("$") == 0) return true;
       }
       log("ERROR\n");
       return false;
@@ -419,9 +460,9 @@ class LexicalAnalyzer {
     }
 
   public:
-    LexicalAnalyzer() { isLL = false; ver = 1; logFile = NULL; }
+    LexicalAnalyzer() { isLL = false; ver = 1; logFile = NULL; logging = false; }
 
-    LexicalAnalyzer(FILE *logFile_):logFile(logFile_) { isLL=false; ver=0; }
+    LexicalAnalyzer(FILE *logFile_):logFile(logFile_) { isLL=false; ver=0; logging = true; }
 
     void clear() {
       log("\nClearing lexical analyzer...\n");
@@ -461,8 +502,7 @@ class LexicalAnalyzer {
 
       // Get variable and add it to list if not found
       variable = production.substr(0, pos);
-      if (!hasVar(variable))
-        vars.push_back(Variable(variable));
+      if (!hasVar(variable)) vars.push_back(Variable(variable));
       Production prod = Production(variable);
 
       // Remove variable from terminal list if it was inside
@@ -478,13 +518,26 @@ class LexicalAnalyzer {
         prod.elements.push_back(terminal);
         production.erase(0, pos+1);
       }
-      terms.push_back(production); // last word
+      if(!hasVar(production)) terms.push_back(production); // last word
       prod.elements.push_back(production);
 
       prods.push_back(prod);
       terms.remove(EPSILON);
       terms.sort();
       terms.unique();
+
+      // Log vars and terms
+      if(logging) {
+        log("V { ");
+        for (Variable var : vars) {
+          sprintf(LABUFFER, "%s ", var.name.c_str()); log(LABUFFER);
+        }
+        log("} T { ");
+        for (std::string term : terms) {
+          sprintf(LABUFFER, "%s ", term.c_str()); log(LABUFFER);
+        }
+        log("}\n");
+      }
 
       if(runUpdate) update();
       return true;

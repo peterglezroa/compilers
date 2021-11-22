@@ -1,148 +1,277 @@
 Parsing E -> T EPrime
+V { E } T { EPrime T }
 Parsing EPrime -> + T EPrime
+V { E EPrime } T { + T }
 Parsing EPrime -> ''
+V { E EPrime } T { + T }
 Parsing T -> F TPrime
+V { E EPrime T } T { + F TPrime }
 Parsing TPrime -> * F TPrime
+V { E EPrime T TPrime } T { * + F }
 Parsing TPrime -> ''
+V { E EPrime T TPrime } T { * + F }
 Parsing F -> ( E )
+V { E EPrime T TPrime F } T { ( ) * + }
 Parsing F -> id
+V { E EPrime T TPrime F } T { ( ) * + id }
 
 Updating to version 1...
 It's LL
+calcFollow(E) CACHE: 
 E: FIRST={(,id} FOLLOW={$,)}, MAP={'(': E -> T EPrime, 'id': E -> T EPrime}
+calcFollow(EPrime) CACHE: 
 EPrime: FIRST={'',+} FOLLOW={$,)}, MAP={'''': EPrime -> '', '+': EPrime -> + T EPrime}
+calcFollow(T) CACHE: 
 T: FIRST={(,id} FOLLOW={$,),+}, MAP={'(': T -> F TPrime, 'id': T -> F TPrime}
+calcFollow(TPrime) CACHE: 
 TPrime: FIRST={'',*} FOLLOW={$,),+}, MAP={'''': TPrime -> '', '*': TPrime -> * F TPrime}
+calcFollow(F) CACHE: 
 F: FIRST={(,id} FOLLOW={$,),*,+}, MAP={'(': F -> ( E ), 'id': F -> id}
 
 Clearing lexical analyzer...
 ==============================================================
 
 Parsing E -> E + T
+V { E } T { + T }
 Parsing E -> T
+V { E } T { + T }
 Parsing T -> T * F
+V { E T } T { * + F }
 Parsing T -> F
+V { E T } T { * + F }
 Parsing F -> id
+V { E T F } T { * + id }
 Parsing F -> ( E )
+V { E T F } T { ( ) * + id }
 
 Updating to version 2...
 It is not LL
+calcFollow(E) CACHE: 
 E: FIRST={(,id} FOLLOW={$,),+}, MAP={}
+calcFollow(T) CACHE: 
 T: FIRST={(,id} FOLLOW={$,),*,+}, MAP={}
+calcFollow(F) CACHE: 
 F: FIRST={(,id} FOLLOW={$,),*,+}, MAP={}
 
 Clearing lexical analyzer...
 ==============================================================
 
 Parsing A -> a A
+V { A } T { a }
 Parsing A -> b A
+V { A } T { a b }
 Parsing A -> a B
+V { A } T { B a b }
 Parsing B -> b C
+V { A B } T { C a b }
 Parsing C -> b D
+V { A B C } T { D a b }
 Parsing D -> ''
+V { A B C D } T { a b }
 
 Updating to version 3...
 It is not LL
+calcFollow(A) CACHE: 
 A: FIRST={a,b} FOLLOW={$}, MAP={}
+calcFollow(B) CACHE: 
 B: FIRST={b} FOLLOW={$}, MAP={}
+calcFollow(C) CACHE: 
 C: FIRST={b} FOLLOW={$}, MAP={}
+calcFollow(D) CACHE: 
 D: FIRST={''} FOLLOW={$}, MAP={}
 
 Clearing lexical analyzer...
 ==============================================================
 
 Parsing bexpr -> bexpr or bterm
+V { bexpr } T { bterm or }
 Parsing bexpr -> bterm
+V { bexpr } T { bterm or }
 Parsing bterm -> bterm and bfactor
+V { bexpr bterm } T { and bfactor or }
 Parsing bterm -> bfactor
+V { bexpr bterm } T { and bfactor or }
 Parsing bfactor -> not bfactor
+V { bexpr bterm bfactor } T { and not or }
 Parsing bfactor -> ( bexpr )
+V { bexpr bterm bfactor } T { ( ) and not or }
 Parsing bfactor -> true
+V { bexpr bterm bfactor } T { ( ) and not or true }
 Parsing bfactor -> false
+V { bexpr bterm bfactor } T { ( ) and false not or true }
 
 Updating to version 4...
 It is not LL
+calcFollow(bexpr) CACHE: 
 bexpr: FIRST={(,false,not,true} FOLLOW={$,),or}, MAP={}
+calcFollow(bterm) CACHE: 
 bterm: FIRST={(,false,not,true} FOLLOW={$,),and,or}, MAP={}
+calcFollow(bfactor) CACHE: 
 bfactor: FIRST={(,false,not,true} FOLLOW={$,),and,or}, MAP={}
 
 Clearing lexical analyzer...
 ==============================================================
 
 Parsing S -> A a
+V { S } T { A a }
 Parsing S -> b
+V { S } T { A a b }
 Parsing A -> b d APrime
+V { S A } T { APrime a b d }
 Parsing A -> APrime
+V { S A } T { APrime a b d }
 Parsing APrime -> c APrime
+V { S A APrime } T { a b c d }
 Parsing APrime -> a d APrime
+V { S A APrime } T { a b c d }
 Parsing APrime -> ''
+V { S A APrime } T { a b c d }
 
 Updating to version 5...
 It's LL
+calcFollow(S) CACHE: 
 S: FIRST={a,b,c} FOLLOW={$}, MAP={'a': S -> A a, 'b': S -> A a, 'c': S -> A a}
+calcFollow(A) CACHE: 
 A: FIRST={'',a,b,c} FOLLOW={a}, MAP={'''': A -> APrime, 'a': A -> APrime, 'b': A -> b d APrime, 'c': A -> APrime}
+calcFollow(APrime) CACHE: 
 APrime: FIRST={'',a,c} FOLLOW={a}, MAP={'''': APrime -> '', 'a': APrime -> a d APrime, 'c': APrime -> c APrime}
 
 Clearing lexical analyzer...
 ==============================================================
 
 Parsing goal -> A
+V { goal } T { A }
 Parsing A -> ( A )
+V { goal A } T { ( ) }
 Parsing A -> two
+V { goal A } T { ( ) two }
 Parsing two -> a
+V { goal A two } T { ( ) a }
 Parsing two -> b
+V { goal A two } T { ( ) a b }
 
 Updating to version 6...
 It's LL
+calcFollow(goal) CACHE: 
 goal: FIRST={(,a,b} FOLLOW={$}, MAP={'(': goal -> A, 'a': goal -> A, 'b': goal -> A}
+calcFollow(A) CACHE: 
 A: FIRST={(,a,b} FOLLOW={$,)}, MAP={'(': A -> ( A ), 'a': A -> two, 'b': A -> two}
+calcFollow(two) CACHE: 
 two: FIRST={a,b} FOLLOW={$,)}, MAP={'a': two -> a, 'b': two -> b}
 
 Testing string '( ( a ) )'
-goal	|	( ( a ) ) $	|	goal -> A
-A	|	( ( a ) ) $	|	A -> ( A )
-(	|	( ( a ) ) $	|	(
-A	|	( a ) ) $	|	A -> ( A )
-(	|	( a ) ) $	|	(
-A	|	a ) ) $	|	A -> two
-two	|	a ) ) $	|	two -> a
-a	|	a ) ) $	|	a
-)	|	) ) $	|	)
-)	|	) $	|	)
+goal	|	( ( a ) ) $ 	|	goal -> A
+A	|	( ( a ) ) $ 	|	A -> ( A )
+(	|	( ( a ) ) $ 	|	(A
+A	|	( a ) ) $ 	|	A -> ( A )
+(	|	( a ) ) $ 	|	(A
+A	|	a ) ) $ 	|	A -> two
+two	|	a ) ) $ 	|	two -> a
+a	|	a ) ) $ 	|	a)
+)	|	) ) $ 	|	))
+)	|	) $ 	|	)$
+$	|	$ 
 
 Testing string '( a ) )'
-goal	|	( a ) ) $	|	goal -> A
-A	|	( a ) ) $	|	A -> ( A )
-(	|	( a ) ) $	|	(
-A	|	a ) ) $	|	A -> two
-two	|	a ) ) $	|	two -> a
-a	|	a ) ) $	|	a
-)	|	) ) $	|	)
+goal	|	( a ) ) $ 	|	goal -> A
+A	|	( a ) ) $ 	|	A -> ( A )
+(	|	( a ) ) $ 	|	(A
+A	|	a ) ) $ 	|	A -> two
+two	|	a ) ) $ 	|	two -> a
+a	|	a ) ) $ 	|	a)
+)	|	) ) $ 	|	)$
+$	|	) $ 
 ERROR
 
 Testing string '( ( ( ( ( b ) ) ) ) )'
-goal	|	( ( ( ( ( b ) ) ) ) ) $	|	goal -> A
-A	|	( ( ( ( ( b ) ) ) ) ) $	|	A -> ( A )
-(	|	( ( ( ( ( b ) ) ) ) ) $	|	(
-A	|	( ( ( ( b ) ) ) ) ) $	|	A -> ( A )
-(	|	( ( ( ( b ) ) ) ) ) $	|	(
-A	|	( ( ( b ) ) ) ) ) $	|	A -> ( A )
-(	|	( ( ( b ) ) ) ) ) $	|	(
-A	|	( ( b ) ) ) ) ) $	|	A -> ( A )
-(	|	( ( b ) ) ) ) ) $	|	(
-A	|	( b ) ) ) ) ) $	|	A -> ( A )
-(	|	( b ) ) ) ) ) $	|	(
-A	|	b ) ) ) ) ) $	|	A -> two
-two	|	b ) ) ) ) ) $	|	two -> b
-b	|	b ) ) ) ) ) $	|	b
-)	|	) ) ) ) ) $	|	)
-)	|	) ) ) ) $	|	)
-)	|	) ) ) $	|	)
-)	|	) ) $	|	)
-)	|	) $	|	)
+goal	|	( ( ( ( ( b ) ) ) ) ) $ 	|	goal -> A
+A	|	( ( ( ( ( b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( ( ( b ) ) ) ) ) $ 	|	(A
+A	|	( ( ( ( b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( ( b ) ) ) ) ) $ 	|	(A
+A	|	( ( ( b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( b ) ) ) ) ) $ 	|	(A
+A	|	( ( b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( b ) ) ) ) ) $ 	|	(A
+A	|	( b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( b ) ) ) ) ) $ 	|	(A
+A	|	b ) ) ) ) ) $ 	|	A -> two
+two	|	b ) ) ) ) ) $ 	|	two -> b
+b	|	b ) ) ) ) ) $ 	|	b)
+)	|	) ) ) ) ) $ 	|	))
+)	|	) ) ) ) $ 	|	))
+)	|	) ) ) $ 	|	))
+)	|	) ) $ 	|	))
+)	|	) $ 	|	)$
+$	|	$ 
 
 Testing string '( ( ( ( ( a b ) ) ) ) )'
-goal	|	( ( ( ( ( a b ) ) ) ) ) $	|	goal -> A
-A	|	( ( ( ( ( a b ) ) ) ) ) $	|	A -> ( A )
-(	|	( ( ( ( ( a b ) ) ) ) ) $	|	(
-A	|	( ( ( ( a b ) ) ) ) ) $	
+goal	|	( ( ( ( ( a b ) ) ) ) ) $ 	|	goal -> A
+A	|	( ( ( ( ( a b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( ( ( a b ) ) ) ) ) $ 	|	(A
+A	|	( ( ( ( a b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( ( a b ) ) ) ) ) $ 	|	(A
+A	|	( ( ( a b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( ( a b ) ) ) ) ) $ 	|	(A
+A	|	( ( a b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( ( a b ) ) ) ) ) $ 	|	(A
+A	|	( a b ) ) ) ) ) $ 	|	A -> ( A )
+(	|	( a b ) ) ) ) ) $ 	|	(A
+A	|	a b ) ) ) ) ) $ 	|	A -> two
+two	|	a b ) ) ) ) ) $ 	|	two -> a
+a	|	a b ) ) ) ) ) $ 	|	a)
+)	|	b ) ) ) ) ) $ 
+ERROR
+
+Clearing lexical analyzer...
+==============================================================
+
+Parsing E -> T X
+V { E } T { T X }
+Parsing X -> + E
+V { E X } T { + T }
+Parsing X -> ''
+V { E X } T { + T }
+Parsing T -> int Y
+V { E X T } T { + Y int }
+Parsing T -> ( E )
+V { E X T } T { ( ) + Y int }
+Parsing Y -> * T
+V { E X T Y } T { ( ) * + int }
+Parsing Y -> ''
+V { E X T Y } T { ( ) * + int }
+
+Updating to version 7...
+It's LL
+calcFollow(E) CACHE: 
+calcFollow(X) CACHE: E 
+calcFollow(E) CACHE: E X 
+E: FIRST={(,int} FOLLOW={$,)}, MAP={'(': E -> T X, 'int': E -> T X}
+X: FIRST={'',+} FOLLOW={$,)}, MAP={'''': X -> '', '+': X -> + E}
+calcFollow(T) CACHE: 
+T: FIRST={(,int} FOLLOW={$,),+}, MAP={'(': T -> ( E ), 'int': T -> int Y}
+calcFollow(Y) CACHE: 
+Y: FIRST={'',*} FOLLOW={$,),+}, MAP={'''': Y -> '', '*': Y -> * T}
+
+Testing string 'int * ( int + int )'
+E	|	int * ( int + int ) $ 	|	E -> T X
+T	|	int * ( int + int ) $ 	|	T -> int Y
+int	|	int * ( int + int ) $ 	|	intY
+Y	|	* ( int + int ) $ 	|	Y -> * T
+*	|	* ( int + int ) $ 	|	*T
+T	|	( int + int ) $ 	|	T -> ( E )
+(	|	( int + int ) $ 	|	(E
+E	|	int + int ) $ 	|	E -> T X
+T	|	int + int ) $ 	|	T -> int Y
+int	|	int + int ) $ 	|	intY
+Y	|	+ int ) $ 	|	EPSILON
+X	|	+ int ) $ 	|	X -> + E
++	|	+ int ) $ 	|	+E
+E	|	int ) $ 	|	E -> T X
+T	|	int ) $ 	|	T -> int Y
+int	|	int ) $ 	|	intY
+Y	|	) $ 	|	EPSILON
+X	|	) $ 	|	EPSILON
+)	|	) $ 	|	)X
+X	|	$ 	|	EPSILON
+$	|	$ 
