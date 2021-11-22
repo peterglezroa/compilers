@@ -1,0 +1,10 @@
+7 2
+E -> T X
+X -> + E
+X -> ''
+T -> int Y
+T -> ( E )
+Y -> * T
+Y -> ''
+int * ( int + int )
+int int * ( int + int )

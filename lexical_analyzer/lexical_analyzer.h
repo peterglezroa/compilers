@@ -418,8 +418,10 @@ class LexicalAnalyzer {
           if (top.compare(term) == 0) {
             str.erase(0, pos+1);
             stack.pop();
-            sprintf(LABUFFER, "\t|\t%s", top.c_str()); log(LABUFFER);
-            if(!stack.empty()) log(stack.top().c_str());
+            if(logging) {
+              sprintf(LABUFFER, "\t|\t%s", top.c_str());
+              log(LABUFFER);
+            }
           // No terminal that can get to term
           } else if( (v=getVar(top)) && v->hasTerm(term)) {
             if(logging) {
@@ -462,7 +464,8 @@ class LexicalAnalyzer {
   public:
     LexicalAnalyzer() { isLL = false; ver = 1; logFile = NULL; logging = false; }
 
-    LexicalAnalyzer(FILE *logFile_):logFile(logFile_) { isLL=false; ver=0; logging = true; }
+    LexicalAnalyzer(FILE *logFile_): logFile(logFile_) {
+      isLL=false; ver=0; logging = true; }
 
     void clear() {
       log("\nClearing lexical analyzer...\n");
@@ -576,6 +579,14 @@ class LexicalAnalyzer {
       if (var) return var->getFollow();
       return calcFollow(str);
     }
+
+    std::string getProd(const std::string &v, const std::string &t) {
+      Variable *var = getVar(v);
+      if (var && var->hasTerm(t))
+        return var->table[t]->toString();
+      return "";
+    }
+
 };
 
 #endif
