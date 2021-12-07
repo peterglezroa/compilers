@@ -7,6 +7,6 @@ TPrime -> * F TPrime
 TPrime -> ''
 F -> ( E )
 F -> id
-( hola )
-( hola ) )
-( ( hola )
+id + id * id
+id * id + ( id * id + id )
+id +

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "lexical_analyzer.h"
+#include "../lexical_analyzer.h"
 
 #define MAX_RULE_LEN 256
 
